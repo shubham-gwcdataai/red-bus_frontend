@@ -5,6 +5,15 @@ import {
 } from '@/types';
 import { storage } from '@/utils/helpers';
 
+export interface FilterApiParams {
+  busTypes?:      string;  
+  minPrice?:      number;
+  maxPrice?:      number;
+  departureTime?: string; 
+  amenities?:     string;  
+  sortBy?:        string; 
+}
+
 // ─── Axios Instance ───────────────────────────────────────────────
 const api = axios.create({
   baseURL: 'http://localhost:5000/api',
@@ -94,7 +103,7 @@ export const authAPI = {
 // BUS / SEARCH APIs
 // ─────────────────────────────────────────────────────────────────
 export const busAPI = {
-  search: async (params: SearchParams): Promise<Bus[]> => {
+  search: async (params: SearchParams & Partial<FilterApiParams>): Promise<Bus[]> => {
     try {
       const { data } = await api.get('/buses/search', { params });
       return data.data.map((trip: BackendTrip) => mapTripToBus(trip));
