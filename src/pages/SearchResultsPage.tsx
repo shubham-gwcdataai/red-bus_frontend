@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, SlidersHorizontal,
@@ -10,11 +10,11 @@ import { useBooking } from '@/context/BookingContext';
 import {
   formatDisplayDate, getTodayISO, parseTimeToMinutes,
 } from '@/utils/helpers';
-import BusCard      from '@/components/search/BusCard';
+import BusCard       from '@/components/search/BusCard';
 import FilterSidebar from '@/components/search/FilterSidebar';
 import SearchForm    from '@/components/search/SearchForm';
 import Spinner       from '@/components/ui/Spinner';
-import { addDays, format, parseISO, isToday } from 'date-fns';
+import { addDays, format, parseISO } from 'date-fns';
 
 const defaultFilters: FilterState = {
   busTypes:      [],
@@ -25,28 +25,14 @@ const defaultFilters: FilterState = {
   sortBy:        'departure',
 };
 
-// Convert FilterState → API query params
 const buildApiParams = (filters: FilterState) => {
   const params: Record<string, string | number | undefined> = {};
-
-  if (filters.busTypes.length > 0)
-    params.busTypes = filters.busTypes.join(',');
-
-  if (filters.priceRange[0] > 0)
-    params.minPrice = filters.priceRange[0];
-
-  if (filters.priceRange[1] < 5000)
-    params.maxPrice = filters.priceRange[1];
-
-  if (filters.departureTime.length > 0)
-    params.departureTime = filters.departureTime.join(',');
-
-  if (filters.amenities.length > 0)
-    params.amenities = filters.amenities.join(',');
-
-  if (filters.sortBy && filters.sortBy !== 'departure')
-    params.sortBy = filters.sortBy;
-
+  if (filters.busTypes.length > 0)     params.busTypes      = filters.busTypes.join(',');
+  if (filters.priceRange[0] > 0)       params.minPrice      = filters.priceRange[0];
+  if (filters.priceRange[1] < 5000)    params.maxPrice      = filters.priceRange[1];
+  if (filters.departureTime.length > 0) params.departureTime = filters.departureTime.join(',');
+  if (filters.amenities.length > 0)    params.amenities     = filters.amenities.join(',');
+  if (filters.sortBy !== 'departure')  params.sortBy        = filters.sortBy;
   return params;
 };
 
@@ -69,7 +55,12 @@ const SearchResultsPage: React.FC = () => {
   const todayISO   = getTodayISO();
   const isPastDate = date < todayISO;
 
-  // ── Main fetch — called on mount AND when filters change ──────
+  // ✅ FIX 1: Track last fetched key to prevent duplicate calls
+  const lastFetchKey   = useRef('');
+  // ✅ FIX 2: Track if this is the initial mount to skip filter useEffect
+  const isInitialMount = useRef(true);
+
+  // ── Core fetch function ───────────────────────────────────────
   const fetchBuses = useCallback(async (currentFilters: FilterState) => {
     if (!from || !to || !date) { navigate('/'); return; }
     if (isPastDate) { setIsLoading(false); return; }
@@ -78,14 +69,12 @@ const SearchResultsPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const apiParams = {
+      const results = await busAPI.search({
         source:      from,
         destination: to,
         date,
         ...buildApiParams(currentFilters),
-      };
-
-      const results = await busAPI.search(apiParams);
+      });
       setBuses(results);
       setTotalCount(results.length);
     } catch (err: unknown) {
@@ -97,25 +86,52 @@ const SearchResultsPage: React.FC = () => {
     }
   }, [from, to, date, navigate, isPastDate]);
 
-  // Fetch on mount (route/date change)
+  // ✅ FIX 3: Single useEffect for route/date change
+  // Resets filters + fetches fresh results
   useEffect(() => {
+    if (!from || !to || !date) return;
+
+    // Build unique key for this route+date combination
+    const routeKey = `${from}|${to}|${date}`;
+
+    // Skip if same route+date already fetched
+    if (lastFetchKey.current === routeKey) return;
+    lastFetchKey.current = routeKey;
+
+    // Update booking context
     setBookingSearch({ source: from, destination: to, date });
-    setFilters(defaultFilters); // reset filters on new search
-    fetchBuses(defaultFilters);
-  }, [from, to, date]);
 
-  // Re-fetch when filters change
+    // Reset filters on new route search
+    const resetFilters = defaultFilters;
+    setFilters(resetFilters);
+    isInitialMount.current = true; // mark so filter effect skips this cycle
+
+    // Fetch with default filters
+    fetchBuses(resetFilters);
+  }, [from, to, date]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ✅ FIX 4: Separate useEffect for filter changes only
+  // Skips on initial mount (already handled above)
   useEffect(() => {
-    // Skip on initial mount — already handled above
-    fetchBuses(filters);
-  }, [filters]);
+    // Skip the very first render — route useEffect already fetched
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
 
-  // Handle filter changes
+    // Only re-fetch if we have valid route params
+    if (!from || !to || !date || isPastDate) return;
+
+    // Update key to allow filter-based re-fetch
+    lastFetchKey.current = `${from}|${to}|${date}|${JSON.stringify(filters)}`;
+
+    fetchBuses(filters);
+  }, [filters]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleFilterChange = (newFilters: FilterState) => {
     setFilters(newFilters);
   };
 
-  // Navigate prev/next day
   const changeDate = (direction: -1 | 1) => {
     const newDate = format(addDays(parseISO(date), direction), 'yyyy-MM-dd');
     if (direction === -1 && newDate < todayISO) return;
@@ -124,12 +140,23 @@ const SearchResultsPage: React.FC = () => {
 
   const isToday_ = date === todayISO;
 
-  // Count active filters for badge
-  const activeFilterCount =
+  const activeFilterCount = useMemo(() =>
     filters.busTypes.length +
     filters.departureTime.length +
     filters.amenities.length +
-    (filters.priceRange[1] < 5000 ? 1 : 0);
+    (filters.priceRange[1] < 5000 ? 1 : 0),
+  [filters]);
+
+  // Time-aware: filter out departed buses for today
+  const nowMinutes = useMemo(() => {
+    const now = new Date();
+    return now.getHours() * 60 + now.getMinutes();
+  }, []);
+
+  const displayedBuses = useMemo(() => {
+    if (!isToday_) return buses;
+    return buses.filter(b => parseTimeToMinutes(b.departureTime) > nowMinutes);
+  }, [buses, isToday_, nowMinutes]);
 
   return (
     <div className="min-h-screen bg-[#f5f7fa] page-enter">
@@ -196,12 +223,12 @@ const SearchResultsPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex gap-6">
 
-          {/* Filter sidebar — desktop */}
+          {/* Filter sidebar */}
           <div className="w-64 flex-shrink-0 hidden lg:block">
             <FilterSidebar
               filters={filters}
               onChange={handleFilterChange}
-              totalResults={totalCount}
+              totalResults={displayedBuses.length}
             />
           </div>
 
@@ -217,7 +244,7 @@ const SearchResultsPage: React.FC = () => {
                   </span>
                 ) : (
                   <>
-                    <span className="font-bold text-[#1a1a2e]">{buses.length}</span>
+                    <span className="font-bold text-[#1a1a2e]">{displayedBuses.length}</span>
                     {' '}buses found
                     {activeFilterCount > 0 && (
                       <span className="ml-2 text-xs bg-[#d63031] text-white px-2 py-0.5 rounded-full">
@@ -229,7 +256,6 @@ const SearchResultsPage: React.FC = () => {
               </p>
 
               <div className="flex items-center gap-2">
-                {/* Clear filters */}
                 {activeFilterCount > 0 && (
                   <button
                     onClick={() => handleFilterChange(defaultFilters)}
@@ -238,7 +264,6 @@ const SearchResultsPage: React.FC = () => {
                     Clear filters
                   </button>
                 )}
-                {/* Mobile filter toggle */}
                 <button
                   onClick={() => setIsFilterOpen(!isFilterOpen)}
                   className="lg:hidden flex items-center gap-1.5 text-sm text-[#d63031] font-medium border border-[#d63031] px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
@@ -260,7 +285,7 @@ const SearchResultsPage: React.FC = () => {
                 <FilterSidebar
                   filters={filters}
                   onChange={handleFilterChange}
-                  totalResults={buses.length}
+                  totalResults={displayedBuses.length}
                   isOpen={isFilterOpen}
                   onClose={() => setIsFilterOpen(false)}
                 />
@@ -288,7 +313,10 @@ const SearchResultsPage: React.FC = () => {
                 <span className="text-5xl">⚠️</span>
                 <h3 className="text-lg font-bold text-[#1a1a2e]">Search failed</h3>
                 <p className="text-gray-500 text-sm text-center max-w-xs">{error}</p>
-                <button onClick={() => fetchBuses(filters)} className="text-sm text-[#d63031] font-semibold hover:underline">
+                <button
+                  onClick={() => fetchBuses(filters)}
+                  className="text-sm text-[#d63031] font-semibold hover:underline"
+                >
                   Try again
                 </button>
               </div>
@@ -305,13 +333,15 @@ const SearchResultsPage: React.FC = () => {
             )}
 
             {/* No results */}
-            {!isLoading && !error && !isPastDate && buses.length === 0 && (
+            {!isLoading && !error && !isPastDate && displayedBuses.length === 0 && (
               <div className="flex flex-col items-center justify-center py-24 gap-4 bg-white rounded-2xl border border-gray-100">
                 <span className="text-6xl">🚌</span>
                 <h3 className="text-lg font-bold text-[#1a1a2e]">No buses found</h3>
                 <p className="text-gray-500 text-sm text-center max-w-sm">
                   {activeFilterCount > 0
                     ? 'No buses match your filters. Try adjusting them.'
+                    : isToday_
+                    ? 'All buses for today have departed. Try tomorrow!'
                     : `No buses from ${from} to ${to} on ${formatDisplayDate(date)}.`}
                 </p>
                 {activeFilterCount > 0 && (
@@ -322,13 +352,21 @@ const SearchResultsPage: React.FC = () => {
                     Clear All Filters
                   </button>
                 )}
+                {isToday_ && activeFilterCount === 0 && (
+                  <button
+                    onClick={() => setSearchParams({ from, to, date: format(addDays(new Date(), 1), 'yyyy-MM-dd') })}
+                    className="text-sm font-semibold text-white bg-[#d63031] px-5 py-2 rounded-lg"
+                  >
+                    Search Tomorrow
+                  </button>
+                )}
               </div>
             )}
 
             {/* Bus cards */}
-            {!isLoading && !error && buses.length > 0 && (
+            {!isLoading && !error && displayedBuses.length > 0 && (
               <div className="space-y-3">
-                {buses.map((bus) => (
+                {displayedBuses.map((bus) => (
                   <BusCard key={bus.id} bus={bus} />
                 ))}
               </div>
