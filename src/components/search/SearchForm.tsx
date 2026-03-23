@@ -177,6 +177,11 @@ const SearchForm: React.FC<SearchFormProps> = ({
   const todayISO = getTodayISO();
   const tomorrowISO = getTomorrowISO();
 
+  // LIMITATION: Calculate Max Date (Today + 2 months / 60 days)
+  const maxDate = new Date();
+  maxDate.setDate(maxDate.getDate() + 60);
+  const maxDateISO = maxDate.toISOString().split('T')[0];
+
   const swapCities = () => {
     const temp = source;
     setSource(destination);
@@ -188,6 +193,13 @@ const SearchForm: React.FC<SearchFormProps> = ({
     if (!source.trim()) { setError('Please enter source city'); return; }
     if (!destination.trim()) { setError('Please enter destination city'); return; }
     if (!date) { setError('Please select a travel date'); return; }
+    
+    // Validation for the 2-month limit
+    if (date > maxDateISO) {
+        setError('Bookings are only available for the next 2 months');
+        return;
+    }
+
     if (source.toLowerCase() === destination.toLowerCase()) {
       setError('Source and destination cannot be the same'); return;
     }
@@ -212,7 +224,7 @@ const SearchForm: React.FC<SearchFormProps> = ({
   };
 
   /* ──────────────────────────────────────────────────────────────
-     COMPACT variant (search results bar)
+      COMPACT variant (search results bar)
   ────────────────────────────────────────────────────────────── */
   if (variant === 'compact') {
     return (
@@ -268,6 +280,7 @@ const SearchForm: React.FC<SearchFormProps> = ({
                   type="date"
                   value={date}
                   min={todayISO}
+                  max={maxDateISO}
                   onChange={e => setDate(e.target.value)}
                   className="w-full pl-7 text-sm text-[#1a1a2e] font-medium
                              focus:outline-none bg-transparent cursor-pointer"
@@ -289,7 +302,7 @@ const SearchForm: React.FC<SearchFormProps> = ({
   }
 
   /* ──────────────────────────────────────────────────────────────
-     HERO variant
+      HERO variant
   ────────────────────────────────────────────────────────────── */
   return (
     <>
@@ -362,6 +375,7 @@ const SearchForm: React.FC<SearchFormProps> = ({
                     type="date"
                     value={date}
                     min={todayISO}
+                    max={maxDateISO}
                     onChange={e => setDate(e.target.value)}
                     style={{ fontSize: '16px', zIndex: 10 }}
                     className="absolute inset-0 w-full h-full opacity-0
@@ -521,6 +535,7 @@ const SearchForm: React.FC<SearchFormProps> = ({
       type="date"
       value={date}
       min={todayISO}
+      max={maxDateISO}
       onChange={e => setDate(e.target.value)}
       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
     />
