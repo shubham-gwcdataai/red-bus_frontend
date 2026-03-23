@@ -6,12 +6,12 @@ import {
 import { storage } from '@/utils/helpers';
 
 export interface FilterApiParams {
-  busTypes?:      string;  
+  busTypes?:      string;
   minPrice?:      number;
   maxPrice?:      number;
-  departureTime?: string; 
-  amenities?:     string;  
-  sortBy?:        string; 
+  departureTime?: string;
+  amenities?:     string;
+  sortBy?:        string;
 }
 
 // ─── Axios Instance ───────────────────────────────────────────────
@@ -60,6 +60,35 @@ const getErrorMessage = (error: unknown): string => {
   }
   if (error instanceof Error) return error.message;
   return 'Something went wrong';
+};
+
+// ─────────────────────────────────────────────────────────────────
+// ✅ FIX: Robust date parser
+// PostgreSQL DATE columns can return:
+//   "2026-03-24"              → plain date string
+//   "2026-03-24T00:00:00.000Z" → ISO timestamp
+//   "2026-03-24T00:00:00+05:30" → ISO with timezone offset
+// All cases: slice(0,10) gives correct "YYYY-MM-DD"
+// ─────────────────────────────────────────────────────────────────
+const parseDate = (val: unknown): string => {
+  if (!val) return '';
+  const str = typeof val === 'string' ? val : String(val);
+  const clean = str.slice(0, 10);
+  // Validate it looks like a real date YYYY-MM-DD
+  return /^\d{4}-\d{2}-\d{2}$/.test(clean) ? clean : '';
+};
+
+// ─────────────────────────────────────────────────────────────────
+// ✅ FIX: Robust time parser
+// PostgreSQL TIME columns can return:
+//   "21:00:00" → HH:MM:SS
+//   "21:00"    → HH:MM (already correct)
+// slice(0,5) always gives "HH:MM"
+// ─────────────────────────────────────────────────────────────────
+const parseTime = (val: unknown): string => {
+  if (!val) return '';
+  const str = typeof val === 'string' ? val : String(val);
+  return str.slice(0, 5);
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -132,13 +161,13 @@ export const busAPI = {
 };
 
 // ─────────────────────────────────────────────────────────────────
-// PAYMENT APIs (Mock Razorpay flow)
+// PAYMENT APIs
 // ─────────────────────────────────────────────────────────────────
 export interface PaymentOrder {
-  orderId:   string;
-  amount:    number;  // in paise
-  currency:  string;
-  keyId:     string;
+  orderId:  string;
+  amount:   number;
+  currency: string;
+  keyId:    string;
 }
 
 export interface PaymentVerification {
@@ -149,7 +178,6 @@ export interface PaymentVerification {
 }
 
 export const paymentAPI = {
-  // Step 1: Create a Razorpay/mock order before booking
   createOrder: async (amount: number): Promise<PaymentOrder> => {
     try {
       const { data } = await api.post('/payments/create-order', { amount });
@@ -159,7 +187,6 @@ export const paymentAPI = {
     }
   },
 
-  // Step 2: Verify payment signature & confirm booking atomically
   verifyAndBook: async (payload: PaymentVerification): Promise<Booking> => {
     try {
       const { data } = await api.post('/payments/verify-and-book', payload);
@@ -169,7 +196,6 @@ export const paymentAPI = {
     }
   },
 
-  // Fallback: direct book without payment (used in mock mode)
   mockPay: async (bookingPayload: BookingPayload): Promise<Booking> => {
     try {
       const { data } = await api.post('/payments/mock-pay', bookingPayload);
@@ -229,6 +255,10 @@ export const bookingAPI = {
     }
   },
 };
+
+// ─────────────────────────────────────────────────────────────────
+// ADMIN APIs
+// ─────────────────────────────────────────────────────────────────
 export interface AdminBusPayload {
   name:               string;
   operatorName:       string;
@@ -264,7 +294,6 @@ export const adminAPI = {
     }
   },
 
-  // Bus management
   getAllBuses: async () => {
     try {
       const { data } = await api.get('/admin/buses');
@@ -301,7 +330,6 @@ export const adminAPI = {
     }
   },
 
-  // Trip management
   getAllTrips: async () => {
     try {
       const { data } = await api.get('/admin/trips');
@@ -338,7 +366,6 @@ export const adminAPI = {
     }
   },
 
-  // Booking management
   getAllBookings: async () => {
     try {
       const { data } = await api.get('/admin/bookings');
@@ -348,7 +375,6 @@ export const adminAPI = {
     }
   },
 
-  // User management
   getAllUsers: async () => {
     try {
       const { data } = await api.get('/admin/users');
@@ -438,17 +464,21 @@ interface BackendBooking {
   }[];
 }
 
+// ─────────────────────────────────────────────────────────────────
+// ✅ FIXED: All date fields use parseDate(), all time fields use parseTime()
+// ─────────────────────────────────────────────────────────────────
+
 export const mapTripToBus = (trip: BackendTrip): Bus => ({
   id:             trip.id,
   name:           trip.bus_name,
   operatorName:   trip.operator_name,
   type:           trip.bus_type as Bus['type'],
-  departureTime:  trip.departure_time?.slice(0, 5) ?? '',
-  arrivalTime:    trip.arrival_time?.slice(0, 5)   ?? '',
+  departureTime:  parseTime(trip.departure_time),   // ✅ "21:00:00" → "21:00"
+  arrivalTime:    parseTime(trip.arrival_time),      // ✅ "06:30:00" → "06:30"
   duration:       trip.duration,
   source:         trip.source,
   destination:    trip.destination,
-  date:           trip.travel_date?.slice(0, 10)   ?? '',
+  date:           parseDate(trip.travel_date),       // ✅ "2026-03-24T00:00:00Z" → "2026-03-24"
   price:          Number(trip.price),
   originalPrice:  trip.original_price ? Number(trip.original_price) : undefined,
   totalSeats:     trip.total_seats     ?? 40,
@@ -463,13 +493,13 @@ export const mapTripToBus = (trip: BackendTrip): Bus => ({
   boardingPoints: (trip.boarding_points ?? []).map((bp) => ({
     id:      bp.id,
     name:    bp.name,
-    time:    bp.time?.slice(0, 5) ?? '',
+    time:    parseTime(bp.time),                     // ✅ consistent
     address: bp.address,
   })),
   droppingPoints: (trip.dropping_points ?? []).map((dp) => ({
     id:      dp.id,
     name:    dp.name,
-    time:    dp.time?.slice(0, 5) ?? '',
+    time:    parseTime(dp.time),                     // ✅ consistent
     address: dp.address,
   })),
 });
@@ -493,15 +523,15 @@ export const mapBooking = (b: BackendBooking): Booking => ({
   busId:  b.trip_id,
   bus: {
     id:             b.trip_id,
-    name:           b.bus_name,
-    operatorName:   b.bus_name,
+    name:           b.bus_name       ?? '',
+    operatorName:   b.bus_name       ?? '',
     type:           b.bus_type as Bus['type'],
-    departureTime:  b.departure_time?.slice(0, 5) ?? '',
-    arrivalTime:    b.arrival_time?.slice(0, 5)   ?? '',
+    departureTime:  parseTime(b.departure_time),     // ✅ "21:00:00" → "21:00"
+    arrivalTime:    parseTime(b.arrival_time),        // ✅ "06:30:00" → "06:30"
     duration:       b.duration       ?? '',
     source:         b.source         ?? '',
     destination:    b.destination    ?? '',
-    date:           b.travel_date?.slice(0, 10) ?? '',
+    date:           parseDate(b.travel_date),         // ✅ "2026-03-24T00:00:00Z" → "2026-03-24"
     price:          Number(b.total_amount),
     totalSeats:     40,
     availableSeats: 0,
@@ -523,13 +553,13 @@ export const mapBooking = (b: BackendBooking): Booking => ({
   boardingPoint: {
     id:      b.trip_id,
     name:    b.boarding_name    ?? '',
-    time:    b.boarding_time?.slice(0, 5) ?? '',
+    time:    parseTime(b.boarding_time),             // ✅
     address: b.boarding_address ?? '',
   },
   droppingPoint: {
     id:      b.trip_id,
     name:    b.dropping_name    ?? '',
-    time:    b.dropping_time?.slice(0, 5) ?? '',
+    time:    parseTime(b.dropping_time),             // ✅
     address: b.dropping_address ?? '',
   },
   status:       b.status,
