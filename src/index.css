@@ -1,0 +1,119 @@
+
+@import "tailwindcss";
+@theme {
+  /* Brand Colors */
+  --color-rb-red:        #d63031;
+  --color-rb-red-dark:   #b71c1c;
+  --color-rb-red-light:  #ff6b6b;
+  --color-rb-orange:     #f97316;
+  --color-rb-yellow:     #fbbf24;
+
+  /* Neutrals */
+  --color-rb-bg:         #f5f7fa;
+  --color-rb-card:       #ffffff;
+  --color-rb-border:     #e5e7eb;
+  --color-rb-text:       #1a1a2e;
+  --color-rb-muted:      #6b7280;
+  --color-rb-subtle:     #9ca3af;
+
+  /* Seat Colors */
+  --color-seat-available: #d1fae5;
+  --color-seat-selected:  #d63031;
+  --color-seat-booked:    #e5e7eb;
+  --color-seat-ladies:    #fce7f3;
+
+  /* Shadows */
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-red: 0 4px 14px rgba(214, 48, 49, 0.3);
+
+  /* Typography */
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+
+  /* Border Radius */
+  --radius-card: 12px;
+  --radius-btn: 8px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-rb-bg);
+  color: var(--color-rb-text);
+  margin: 0;
+  padding: 0;
+  line-height: 1.6;
+}
+
+.card-shadow {
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.card-shadow:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+.btn-red {
+  background-color: var(--color-rb-red);
+  color: white;
+  border: none;
+  border-radius: var(--radius-btn);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+.btn-red:hover {
+  background-color: var(--color-rb-red-dark);
+  box-shadow: var(--shadow-red);
+  transform: translateY(-1px);
+}
+.btn-red:active {
+  transform: translateY(0);
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #d63031; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #b71c1c; }
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-enter {
+  animation: fadeSlideIn 0.35s ease forwards;
+}
+
+@keyframes seatPulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.08); }
+}
+.seat-pulse {
+  animation: seatPulse 0.3s ease;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+@media (max-width: 767px) {
+  body.home-page {
+    background-color: #1a1a2e;
+  }
+}
