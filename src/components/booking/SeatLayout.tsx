@@ -71,7 +71,6 @@ const SeatLayout: React.FC<SeatLayoutProps> = ({ seats, deck }) => {
             {rowSeats.filter((s) => s.position.col < 2).map((seat) => (
               <SeatButton key={seat.id} seat={seat} onClick={() => toggleSeat(seat)} />
             ))}
-            {/* Aisle */}
             <div className="w-5 flex-shrink-0" />
             {/* Right 2 seats */}
             {rowSeats.filter((s) => s.position.col >= 2).map((seat) => (
