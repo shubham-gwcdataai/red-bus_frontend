@@ -16,7 +16,7 @@ export interface FilterApiParams {
 
 // ─── Axios Instance ───────────────────────────────────────────────
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: 'https://red-bus-backend-tosi.onrender.com/api',
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 });

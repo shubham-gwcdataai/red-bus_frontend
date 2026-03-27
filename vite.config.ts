@@ -18,7 +18,7 @@ export default defineConfig({
     proxy: {
       // Proxy all /api/* requests to the Express backend during development
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'https://red-bus-backend-tosi.onrender.com',
         changeOrigin: true,
         secure: false,
       },
