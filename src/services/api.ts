@@ -17,7 +17,7 @@ export interface FilterApiParams {
 // ─── Axios Instance ───────────────────────────────────────────────
 const api = axios.create({
   baseURL: 'https://red-bus-backend-tosi.onrender.com/api',
-  timeout: 15000,
+  timeout: 60000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -61,15 +61,6 @@ const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error) return error.message;
   return 'Something went wrong';
 };
-
-// ─────────────────────────────────────────────────────────────────
-// ✅ FIX: Robust date parser
-// PostgreSQL DATE columns can return:
-//   "2026-03-24"              → plain date string
-//   "2026-03-24T00:00:00.000Z" → ISO timestamp
-//   "2026-03-24T00:00:00+05:30" → ISO with timezone offset
-// All cases: slice(0,10) gives correct "YYYY-MM-DD"
-// ─────────────────────────────────────────────────────────────────
 const parseDate = (val: unknown): string => {
   if (!val) return '';
   const str = typeof val === 'string' ? val : String(val);
@@ -77,14 +68,6 @@ const parseDate = (val: unknown): string => {
   // Validate it looks like a real date YYYY-MM-DD
   return /^\d{4}-\d{2}-\d{2}$/.test(clean) ? clean : '';
 };
-
-// ─────────────────────────────────────────────────────────────────
-// ✅ FIX: Robust time parser
-// PostgreSQL TIME columns can return:
-//   "21:00:00" → HH:MM:SS
-//   "21:00"    → HH:MM (already correct)
-// slice(0,5) always gives "HH:MM"
-// ─────────────────────────────────────────────────────────────────
 const parseTime = (val: unknown): string => {
   if (!val) return '';
   const str = typeof val === 'string' ? val : String(val);
@@ -473,12 +456,12 @@ export const mapTripToBus = (trip: BackendTrip): Bus => ({
   name:           trip.bus_name,
   operatorName:   trip.operator_name,
   type:           trip.bus_type as Bus['type'],
-  departureTime:  parseTime(trip.departure_time),   // ✅ "21:00:00" → "21:00"
-  arrivalTime:    parseTime(trip.arrival_time),      // ✅ "06:30:00" → "06:30"
+  departureTime:  parseTime(trip.departure_time),   
+  arrivalTime:    parseTime(trip.arrival_time),     
   duration:       trip.duration,
   source:         trip.source,
   destination:    trip.destination,
-  date:           parseDate(trip.travel_date),       // ✅ "2026-03-24T00:00:00Z" → "2026-03-24"
+  date:           parseDate(trip.travel_date),      
   price:          Number(trip.price),
   originalPrice:  trip.original_price ? Number(trip.original_price) : undefined,
   totalSeats:     trip.total_seats     ?? 40,
@@ -493,13 +476,13 @@ export const mapTripToBus = (trip: BackendTrip): Bus => ({
   boardingPoints: (trip.boarding_points ?? []).map((bp) => ({
     id:      bp.id,
     name:    bp.name,
-    time:    parseTime(bp.time),                     // ✅ consistent
+    time:    parseTime(bp.time),                    
     address: bp.address,
   })),
   droppingPoints: (trip.dropping_points ?? []).map((dp) => ({
     id:      dp.id,
     name:    dp.name,
-    time:    parseTime(dp.time),                     // ✅ consistent
+    time:    parseTime(dp.time),                 
     address: dp.address,
   })),
 });
@@ -526,12 +509,12 @@ export const mapBooking = (b: BackendBooking): Booking => ({
     name:           b.bus_name       ?? '',
     operatorName:   b.bus_name       ?? '',
     type:           b.bus_type as Bus['type'],
-    departureTime:  parseTime(b.departure_time),     // ✅ "21:00:00" → "21:00"
-    arrivalTime:    parseTime(b.arrival_time),        // ✅ "06:30:00" → "06:30"
+    departureTime:  parseTime(b.departure_time),     
+    arrivalTime:    parseTime(b.arrival_time),        
     duration:       b.duration       ?? '',
     source:         b.source         ?? '',
     destination:    b.destination    ?? '',
-    date:           parseDate(b.travel_date),         // ✅ "2026-03-24T00:00:00Z" → "2026-03-24"
+    date:           parseDate(b.travel_date),        
     price:          Number(b.total_amount),
     totalSeats:     40,
     availableSeats: 0,
@@ -553,13 +536,13 @@ export const mapBooking = (b: BackendBooking): Booking => ({
   boardingPoint: {
     id:      b.trip_id,
     name:    b.boarding_name    ?? '',
-    time:    parseTime(b.boarding_time),             // ✅
+    time:    parseTime(b.boarding_time),             
     address: b.boarding_address ?? '',
   },
   droppingPoint: {
     id:      b.trip_id,
     name:    b.dropping_name    ?? '',
-    time:    parseTime(b.dropping_time),             // ✅
+    time:    parseTime(b.dropping_time),            
     address: b.dropping_address ?? '',
   },
   status:       b.status,

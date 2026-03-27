@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   BrowserRouter as Router, Routes, Route,
   Navigate, useLocation, useNavigate,
@@ -36,6 +36,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>;
 };
 
+
+
 // ── Admin Route: must be logged in AND have role = 'admin' ────────
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, user, isLoading } = useAuth();
@@ -68,8 +70,12 @@ const NO_NAV_PATHS = ['/admin'];
 
 const AppContent: React.FC = () => {
   const { pathname } = useLocation();
+  useEffect(() => {
+  fetch(`https://red-bus-backend-tosi.onrender.com/health`).catch(() => {});
+}, []);
   const showFooter = !NO_FOOTER_PATHS.some(p => pathname.startsWith(p));
   const showNav = !NO_NAV_PATHS.some(p => pathname.startsWith(p));
+  
 
   return (
     <div className="flex flex-col min-h-screen bg-white md:bg-[#f5f7fa]">
