@@ -165,7 +165,7 @@ const SearchForm: React.FC<SearchFormProps> = ({
 
   const [source, setSource] = useState(initialSource);
   const [destination, setDestination] = useState(initialDestination);
-  const [date, setDate] = useState(initialDate || getTomorrowISO());
+  const [date, setDate] = useState(initialDate || getTodayISO());
   const [bookingForWomen, setBookingForWomen] = useState(false);
   const [error, setError] = useState('');
   const [snackbarVisible, setSnackbarVisible] = useState(false);
@@ -313,7 +313,7 @@ const SearchForm: React.FC<SearchFormProps> = ({
         ══════════════════════════════════════════ */}
         <div className="hidden md:block">
           <div className="bg-white rounded-2xl shadow-2xl border border-gray-100">
-            <div className="flex items-stretch divide-x divide-gray-100">
+            <div className="flex flex-col xl:flex-row xl:items-stretch xl:divide-x xl:divide-gray-100">
 
               {/* FROM */}
               <div className="flex items-center gap-3 px-5 py-5 flex-1 min-w-0">
@@ -335,7 +335,7 @@ const SearchForm: React.FC<SearchFormProps> = ({
               </div>
 
               {/* Swap */}
-              <div className="flex items-center justify-center px-2 flex-shrink-0 z-10">
+              <div className="hidden xl:flex items-center justify-center px-2 flex-shrink-0 z-10">
                 <button type="button" onClick={swapCities}
                   className="w-9 h-9 rounded-full bg-[#1a1a2e] hover:bg-[#d63031]
                              flex items-center justify-center shadow-md
@@ -364,7 +364,7 @@ const SearchForm: React.FC<SearchFormProps> = ({
               </div>
 
               {/* DATE */}
-              <div className="flex items-center gap-3 px-5 py-5">
+              <div className="flex items-center gap-3 px-5 py-4 flex-wrap border-b xl:border-b-0 border-gray-100">
                 {/* Calendar icon triggers date picker */}
                 <div className="relative flex-shrink-0">
                   <div className="w-9 h-9 bg-gray-100 rounded-xl flex items-center justify-center">
@@ -420,7 +420,7 @@ const SearchForm: React.FC<SearchFormProps> = ({
               </div>
 
               {/* WOMEN */}
-              <div className="flex items-center gap-3 px-5 py-5">
+              <div className="flex items-center gap-3 px-5 py-4 flex-wrap border-b xl:border-b-0 border-gray-100">
                 <div className="w-9 h-9 rounded-full bg-orange-50 flex items-center
                                 justify-center flex-shrink-0 text-xl">👩</div>
                 <div className="min-w-0">

@@ -69,10 +69,17 @@ const NO_FOOTER_PATHS = ['/login', '/signup', '/admin'];
 const NO_NAV_PATHS = ['/admin'];
 
 const AppContent: React.FC = () => {
-  const { pathname } = useLocation();
+  const { pathname,search } = useLocation();
   useEffect(() => {
   fetch(`https://red-bus-backend-tosi.onrender.com/health`).catch(() => {});
 }, []);
+useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'auto',
+    });
+  }, [pathname, search]);
   const showFooter = !NO_FOOTER_PATHS.some(p => pathname.startsWith(p));
   const showNav = !NO_NAV_PATHS.some(p => pathname.startsWith(p));
   
