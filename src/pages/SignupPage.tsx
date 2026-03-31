@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,11 +19,10 @@ const schema = z.object({
 });
 type FormValues = z.infer<typeof schema>;
 
-// Reusable field component
 const Field: React.FC<{
-  label:       string;
-  error?:      string;
-  children:    React.ReactNode;
+  label:    string;
+  error?:   string;
+  children: React.ReactNode;
 }> = ({ label, error, children }) => (
   <div className="flex flex-col gap-1">
     <label className="text-sm font-medium text-[#1a1a2e]">{label}</label>
@@ -44,12 +43,11 @@ const inputClass = (hasError?: boolean) =>
    ${hasError ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white'}`;
 
 const SignupPage: React.FC = () => {
-  const navigate               = useNavigate();
-  const { signup, isLoading }  = useAuth();
-  const [showPassword,  setShowPassword]  = useState(false);
-  const [showConfirm,   setShowConfirm]   = useState(false);
-  const [serverError,   setServerError]   = useState<string | null>(null);
-  const formRef = useRef<HTMLFormElement>(null);
+  const navigate              = useNavigate();
+  const { signup, isLoading } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm,  setShowConfirm]  = useState(false);
+  const [serverError,  setServerError]  = useState<string | null>(null);
 
   const {
     register,
@@ -94,7 +92,7 @@ const SignupPage: React.FC = () => {
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
 
-          {/* ── Server Error Banner ── */}
+          {/* Server Error Banner */}
           {serverError && (
             <div className="mb-5 flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3.5 rounded-xl">
               <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
@@ -105,17 +103,20 @@ const SignupPage: React.FC = () => {
             </div>
           )}
 
-          <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
             {/* Name */}
             <Field label="Full Name" error={errors.name?.message}>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input type="text" placeholder="Rahul Sharma"
-                  {...register('name')}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSubmit(onSubmit)(); } }}
-                  onChange={() => setServerError(null)}
-                  className={inputClass(!!errors.name)} />
+                <input
+                  type="text"
+                  placeholder="Rahul Sharma"
+                  {...register('name', {
+                    onChange: () => setServerError(null),
+                  })}
+                  className={inputClass(!!errors.name)}
+                />
               </div>
             </Field>
 
@@ -123,11 +124,14 @@ const SignupPage: React.FC = () => {
             <Field label="Email Address" error={errors.email?.message}>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input type="email" placeholder="you@example.com"
-                  {...register('email')}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSubmit(onSubmit)(); } }}
-                  onChange={() => setServerError(null)}
-                  className={inputClass(!!errors.email)} />
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  {...register('email', {
+                    onChange: () => setServerError(null),
+                  })}
+                  className={inputClass(!!errors.email)}
+                />
               </div>
             </Field>
 
@@ -135,9 +139,12 @@ const SignupPage: React.FC = () => {
             <Field label="Phone Number (optional)" error={errors.phone?.message}>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input type="tel" placeholder="9876543210"
+                <input
+                  type="tel"
+                  placeholder="9876543210"
                   {...register('phone')}
-                  className={inputClass(!!errors.phone)} />
+                  className={inputClass(!!errors.phone)}
+                />
               </div>
             </Field>
 
@@ -149,12 +156,13 @@ const SignupPage: React.FC = () => {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Min 6 characters"
                   {...register('password')}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); formRef.current?.dispatchEvent(new Event('submit', { bubbles: true })); } }}
                   className={inputClass(!!errors.password)}
                 />
-                <button type="button"
+                <button
+                  type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
@@ -170,9 +178,11 @@ const SignupPage: React.FC = () => {
                   {...register('confirmPassword')}
                   className={inputClass(!!errors.confirmPassword)}
                 />
-                <button type="button"
+                <button
+                  type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
                   {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>

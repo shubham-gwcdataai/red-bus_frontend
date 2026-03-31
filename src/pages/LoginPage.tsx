@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,7 +20,6 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError,  setServerError]  = useState<string | null>(null);
   const from = (location.state as { from?: string })?.from || '/';
-  const formRef = useRef<HTMLFormElement>(null);
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -74,7 +73,7 @@ const LoginPage: React.FC = () => {
             </div>
           )}
 
-          <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
 
             {/* Email */}
             <div className="flex flex-col gap-1">
@@ -84,8 +83,9 @@ const LoginPage: React.FC = () => {
                 <input
                   type="email"
                   placeholder="you@example.com"
-                  {...register('email')}
-                  onChange={() => setServerError(null)}
+                  {...register('email', {
+                    onChange: () => setServerError(null),
+                  })}
                   className={`w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm text-[#1a1a2e]
                     focus:outline-none focus:ring-2 focus:ring-[#d63031] focus:border-transparent
                     transition-all duration-150
@@ -107,14 +107,9 @@ const LoginPage: React.FC = () => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
-                  {...register('password')}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      formRef.current?.dispatchEvent(new Event('submit', { bubbles: true }));
-                    }
-                  }}
-                  onChange={() => setServerError(null)}
+                  {...register('password', {
+                    onChange: () => setServerError(null),
+                  })}
                   className={`w-full pl-10 pr-10 py-2.5 rounded-lg border text-sm text-[#1a1a2e]
                     focus:outline-none focus:ring-2 focus:ring-[#d63031] focus:border-transparent
                     transition-all duration-150
