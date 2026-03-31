@@ -58,9 +58,6 @@ const OffersSection: React.FC = () => {
           <div>
             <h2 className="text-lg md:text-xl font-bold text-[#1a1a2e]">Offers for you</h2>
           </div>
-          <button className="flex items-center gap-1 text-sm text-[#d63031] font-semibold">
-            View more <ChevronRight className="w-4 h-4" />
-          </button>
         </div>
 
         {/* Filter tabs */}

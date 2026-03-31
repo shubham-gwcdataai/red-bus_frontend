@@ -109,6 +109,24 @@ export const authAPI = {
       throw new Error(getErrorMessage(error));
     }
   },
+
+  forgotPassword: async (email: string): Promise<{ message: string }> => {
+    try {
+      const { data } = await api.post('/auth/forgot-password', { email });
+      return { message: data.message };
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  resetPassword: async (token: string, password: string): Promise<{ message: string }> => {
+    try {
+      const { data } = await api.post('/auth/reset-password', { token, password });
+      return { message: data.message };
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -500,56 +518,62 @@ export const mapSeat = (seat: BackendSeat): Seat => ({
   },
 });
 
-export const mapBooking = (b: BackendBooking): Booking => ({
-  id:     b.id,
-  userId: b.user_id,
-  busId:  b.trip_id,
-  bus: {
-    id:             b.trip_id,
-    name:           b.bus_name       ?? '',
-    operatorName:   b.bus_name       ?? '',
-    type:           b.bus_type as Bus['type'],
-    departureTime:  parseTime(b.departure_time),     
-    arrivalTime:    parseTime(b.arrival_time),        
-    duration:       b.duration       ?? '',
-    source:         b.source         ?? '',
-    destination:    b.destination    ?? '',
-    date:           parseDate(b.travel_date),        
-    price:          Number(b.total_amount),
-    totalSeats:     40,
-    availableSeats: 0,
-    rating:         4.0,
-    reviewCount:    0,
-    amenities:      [],
-    policies:       { cancellation: '', refund: '' },
-    boardingPoints: [],
-    droppingPoints: [],
-  },
-  passengers: (b.passengers ?? []).map((p) => ({
-    name:       p.passenger_name,
-    age:        p.passenger_age,
-    gender:     p.passenger_gender as 'Male' | 'Female' | 'Other',
-    seatNumber: p.seat_number,
-  })),
-  selectedSeats: (b.passengers ?? []).map((p) => p.seat_number),
-  totalAmount:   Number(b.total_amount),
-  boardingPoint: {
-    id:      b.trip_id,
-    name:    b.boarding_name    ?? '',
-    time:    parseTime(b.boarding_time),             
-    address: b.boarding_address ?? '',
-  },
-  droppingPoint: {
-    id:      b.trip_id,
-    name:    b.dropping_name    ?? '',
-    time:    parseTime(b.dropping_time),            
-    address: b.dropping_address ?? '',
-  },
-  status:       b.status,
-  bookingDate:  b.booked_at,
-  pnr:          b.pnr,
-  contactEmail: b.contact_email,
-  contactPhone: b.contact_phone,
-});
+export const mapBooking = (b: BackendBooking): Booking => {
+  // total_amount comes back as a numeric string from Postgres; guard against null/undefined
+  const rawAmount = b.total_amount ?? b.passengers?.reduce(() => 0, 0) ?? 0;
+  const safeAmount = isNaN(Number(rawAmount)) ? 0 : Number(rawAmount);
+
+  return {
+    id:     b.id,
+    userId: b.user_id,
+    busId:  b.trip_id,
+    bus: {
+      id:             b.trip_id,
+      name:           b.bus_name        ?? '',
+      operatorName:   b.bus_name        ?? '',
+      type:           b.bus_type as Bus['type'],
+      departureTime:  parseTime(b.departure_time),
+      arrivalTime:    parseTime(b.arrival_time),
+      duration:       b.duration        ?? '',
+      source:         b.source          ?? '',
+      destination:    b.destination     ?? '',
+      date:           parseDate(b.travel_date),
+      price:          safeAmount,
+      totalSeats:     40,
+      availableSeats: 0,
+      rating:         4.0,
+      reviewCount:    0,
+      amenities:      [],
+      policies:       { cancellation: '', refund: '' },
+      boardingPoints: [],
+      droppingPoints: [],
+    },
+    passengers: (b.passengers ?? []).map((p) => ({
+      name:       p.passenger_name   ?? '',
+      age:        p.passenger_age    ?? 0,
+      gender:     (p.passenger_gender ?? 'Male') as 'Male' | 'Female' | 'Other',
+      seatNumber: p.seat_number      ?? '',
+    })),
+    selectedSeats: (b.passengers ?? []).map((p) => p.seat_number ?? ''),
+    totalAmount:   safeAmount,
+    boardingPoint: {
+      id:      b.trip_id             ?? '',
+      name:    b.boarding_name       ?? '',
+      time:    parseTime(b.boarding_time),
+      address: b.boarding_address    ?? '',
+    },
+    droppingPoint: {
+      id:      b.trip_id             ?? '',
+      name:    b.dropping_name       ?? '',
+      time:    parseTime(b.dropping_time),
+      address: b.dropping_address    ?? '',
+    },
+    status:       b.status           ?? 'confirmed',
+    bookingDate:  b.booked_at        ?? '',
+    pnr:          b.pnr              ?? '',
+    contactEmail: b.contact_email    ?? '',
+    contactPhone: b.contact_phone    ?? '',
+  };
+};
 
 export default api;

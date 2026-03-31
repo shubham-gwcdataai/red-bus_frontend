@@ -1,10 +1,10 @@
 import React from 'react';
 import { formatPrice, formatDate } from '@/utils/helpers';
 import { useBooking } from '@/context/BookingContext';
-import { Tag, Clock, MapPin } from 'lucide-react';
+import { Tag, Clock, MapPin, Users } from 'lucide-react';
 
 const BookingSummary: React.FC = () => {
-  const { selectedBus, selectedSeats, totalAmount, boardingPoint, droppingPoint } = useBooking();
+  const { selectedBus, selectedSeats, totalAmount, boardingPoint, droppingPoint, isWomenOnly } = useBooking();
 
   if (!selectedBus) return null;
 
@@ -15,6 +15,14 @@ const BookingSummary: React.FC = () => {
       </div>
 
       <div className="p-4 space-y-3">
+        {/* Women Only Badge */}
+        {isWomenOnly && (
+          <div className="bg-pink-50 rounded-xl p-2 flex items-center gap-2">
+            <Users className="w-4 h-4 text-pink-500" />
+            <span className="text-xs font-semibold text-pink-600">Women Only Booking</span>
+          </div>
+        )}
+
         {/* Bus Info */}
         <div>
           <p className="font-bold text-[#1a1a2e]">{selectedBus.name}</p>
@@ -34,9 +42,11 @@ const BookingSummary: React.FC = () => {
         <p className="text-xs text-gray-500">{formatDate(selectedBus.date)}</p>
 
         {/* Selected Seats */}
-        {selectedSeats.length > 0 && (
-          <div className="border-t border-gray-100 pt-3">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Selected Seats</p>
+        <div className="border-t border-gray-100 pt-3">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
+            Selected Seats {selectedSeats.length > 0 && `(${selectedSeats.length})`}
+          </p>
+          {selectedSeats.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
               {selectedSeats.map((seat) => (
                 <span
@@ -47,8 +57,10 @@ const BookingSummary: React.FC = () => {
                 </span>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <p className="text-xs text-gray-400">No seats selected</p>
+          )}
+        </div>
 
         {/* Boarding/Dropping */}
         {boardingPoint && (
@@ -75,27 +87,27 @@ const BookingSummary: React.FC = () => {
         )}
 
         {/* Total */}
-        {selectedSeats.length > 0 && (
-          <div className="border-t border-gray-100 pt-3 mt-1">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">{selectedSeats.length} seat(s)</span>
-              <span className="text-xs text-gray-500">
-                {selectedSeats.length} × {formatPrice(selectedBus.price)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between mt-2">
-              <span className="font-bold text-[#1a1a2e]">Total</span>
-              <span className="font-black text-xl text-[#d63031]">{formatPrice(totalAmount)}</span>
-            </div>
-            <p className="text-xs text-gray-400 text-right mt-0.5">Inclusive of all taxes</p>
-          </div>
-        )}
-
-        {selectedSeats.length === 0 && (
-          <p className="text-xs text-gray-400 text-center py-3">
-            Select seats to see total amount
-          </p>
-        )}
+        <div className="border-t border-gray-100 pt-3 mt-1">
+          {selectedSeats.length > 0 ? (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">{selectedSeats.length} seat(s)</span>
+                <span className="text-xs text-gray-500">
+                  {selectedSeats.length} × {formatPrice(selectedBus.price)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between mt-2">
+                <span className="font-bold text-[#1a1a2e]">Total</span>
+                <span className="font-black text-xl text-[#d63031]">{formatPrice(totalAmount)}</span>
+              </div>
+              <p className="text-xs text-gray-400 text-right mt-0.5">Inclusive of all taxes</p>
+            </>
+          ) : (
+            <p className="text-xs text-gray-400 text-center">
+              Select seats to see total amount
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

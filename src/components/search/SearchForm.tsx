@@ -177,6 +177,22 @@ const SearchForm: React.FC<SearchFormProps> = ({
   const todayISO = getTodayISO();
   const tomorrowISO = getTomorrowISO();
 
+  // Sync date when initialDate prop changes (e.g., from arrow navigation in SearchResultsPage)
+  useEffect(() => {
+    if (initialDate) {
+      setDate(initialDate);
+    }
+  }, [initialDate]);
+
+  // Sync source and destination when props change
+  useEffect(() => {
+    setSource(initialSource);
+  }, [initialSource]);
+
+  useEffect(() => {
+    setDestination(initialDestination);
+  }, [initialDestination]);
+
   // LIMITATION: Calculate Max Date (Today + 2 months / 60 days)
   const maxDate = new Date();
   maxDate.setDate(maxDate.getDate() + 60);
@@ -427,10 +443,6 @@ const SearchForm: React.FC<SearchFormProps> = ({
                   <p className="text-[13px] font-bold text-[#1a1a2e] whitespace-nowrap">
                     Booking for women
                   </p>
-                  <button type="button"
-                    className="text-xs text-[#d63031] font-semibold mt-0.5">
-                    Know more
-                  </button>
                 </div>
                 <button type="button" onClick={handleWomenToggle}
                   role="switch"

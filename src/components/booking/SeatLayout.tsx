@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Seat, DeckType } from '@/types';
 import { useBooking } from '@/context/BookingContext';
 import { cn } from '@/utils/helpers';
@@ -10,22 +10,32 @@ interface SeatLayoutProps {
 
 // Renders a single seat button
 const SeatButton: React.FC<{ seat: Seat; onClick: () => void }> = ({ seat, onClick }) => {
-  const statusStyles = {
-    available: 'bg-green-100 border-green-400 text-green-700 hover:bg-green-200 cursor-pointer',
-    selected:  'bg-[#d63031] border-[#d63031] text-white cursor-pointer seat-pulse',
-    booked:    'bg-gray-200 border-gray-300 text-gray-400 cursor-not-allowed opacity-70',
-    ladies:    'bg-pink-100 border-pink-400 text-pink-700 hover:bg-pink-200 cursor-pointer',
+  const isBooked = seat.status === 'booked';
+  const isSelected = seat.status === 'selected';
+  const isLadies = seat.status === 'ladies';
+
+  const getSeatStyle = () => {
+    if (isSelected) {
+      return 'bg-[#d63031] border-[#d63031] text-white cursor-pointer shadow-md';
+    }
+    if (isBooked) {
+      return 'bg-gray-200 border-gray-300 text-gray-400 cursor-not-allowed opacity-60';
+    }
+    if (isLadies) {
+      return 'bg-pink-100 border-pink-400 text-pink-700 cursor-pointer hover:bg-pink-200';
+    }
+    return 'bg-green-100 border-green-400 text-green-700 cursor-pointer hover:bg-green-200';
   };
 
   return (
     <button
-      onClick={seat.status !== 'booked' ? onClick : undefined}
+      onClick={!isBooked ? onClick : undefined}
       className={cn(
         'w-9 h-10 rounded-t-xl border-2 text-xs font-bold flex items-center justify-center',
         'transition-all duration-150',
-        statusStyles[seat.status]
+        getSeatStyle()
       )}
-      title={`Seat ${seat.seatNumber} – ${seat.status === 'booked' ? 'Booked' : `₹${seat.price}`}`}
+      title={`Seat ${seat.seatNumber} – ${isBooked ? 'Booked' : `₹${seat.price}`}`}
     >
       {seat.seatNumber.replace(/[A-Z]/g, '')}
     </button>
@@ -33,9 +43,22 @@ const SeatButton: React.FC<{ seat: Seat; onClick: () => void }> = ({ seat, onCli
 };
 
 const SeatLayout: React.FC<SeatLayoutProps> = ({ seats, deck }) => {
-  const { toggleSeat } = useBooking();
+  const { toggleSeat, selectedSeats } = useBooking();
 
-  const deckSeats = seats.filter((s) => s.deck === deck);
+  // Merge seats with selected state from context
+  const selectedIds = useMemo(() => 
+    new Set(selectedSeats.map(s => s.id)), 
+    [selectedSeats]
+  );
+
+  const deckSeats = useMemo(() => {
+    return seats.filter((s) => s.deck === deck).map(seat => {
+      if (selectedIds.has(seat.id)) {
+        return { ...seat, status: 'selected' as const };
+      }
+      return seat;
+    });
+  }, [seats, deck, selectedIds]);
 
   // Group by row
   const rows: Record<number, Seat[]> = {};
@@ -53,13 +76,18 @@ const SeatLayout: React.FC<SeatLayoutProps> = ({ seats, deck }) => {
       {/* Deck Label */}
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide">
-          {deck === 'lower' ? '🪑 Lower Deck' : '🛏️ Upper Deck (Sleeper)'}
+          {deck === 'lower' ? ' Lower Deck' : ' Upper Deck (Sleeper)'}
         </h3>
+        {deck === 'lower' && selectedSeats.length > 0 && (
+          <span className="text-xs text-[#d63031] font-medium">
+            {selectedSeats.length} seat{selectedSeats.length > 1 ? 's' : ''} selected
+          </span>
+        )}
       </div>
 
       {/* Driver cabin indicator */}
       <div className="flex justify-end mb-2">
-        <div className="bg-gray-200 rounded px-3 py-1 text-xs text-gray-500 font-medium">🚗 Driver</div>
+        <div className="bg-gray-200 rounded px-3 py-1 text-xs text-gray-500 font-medium"> Driver</div>
       </div>
 
       {/* Seat Grid — 2+2 layout with aisle */}

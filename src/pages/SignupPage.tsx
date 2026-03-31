@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -49,6 +49,7 @@ const SignupPage: React.FC = () => {
   const [showPassword,  setShowPassword]  = useState(false);
   const [showConfirm,   setShowConfirm]   = useState(false);
   const [serverError,   setServerError]   = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const {
     register,
@@ -104,7 +105,7 @@ const SignupPage: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
             {/* Name */}
             <Field label="Full Name" error={errors.name?.message}>
@@ -112,6 +113,7 @@ const SignupPage: React.FC = () => {
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input type="text" placeholder="Rahul Sharma"
                   {...register('name')}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSubmit(onSubmit)(); } }}
                   onChange={() => setServerError(null)}
                   className={inputClass(!!errors.name)} />
               </div>
@@ -123,6 +125,7 @@ const SignupPage: React.FC = () => {
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input type="email" placeholder="you@example.com"
                   {...register('email')}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSubmit(onSubmit)(); } }}
                   onChange={() => setServerError(null)}
                   className={inputClass(!!errors.email)} />
               </div>
@@ -146,6 +149,7 @@ const SignupPage: React.FC = () => {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Min 6 characters"
                   {...register('password')}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); formRef.current?.dispatchEvent(new Event('submit', { bubbles: true })); } }}
                   className={inputClass(!!errors.password)}
                 />
                 <button type="button"

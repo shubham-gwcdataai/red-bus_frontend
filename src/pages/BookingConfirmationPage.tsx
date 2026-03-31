@@ -180,7 +180,8 @@ const BookingConfirmationPage: React.FC = () => {
   const {
     selectedBus, selectedSeats, passengers,
     boardingPoint, droppingPoint, totalAmount,
-    setContact, clearBooking,
+    setContact, clearBooking, markBookingCompleted,
+    isWomenOnly,
   } = useBooking();
 
   const [booking,    setBooking]    = useState<Booking | null>(null);
@@ -210,8 +211,8 @@ const BookingConfirmationPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Use mock-pay endpoint (in production, use verify-and-book with real Razorpay signatures)
-      const result = await paymentAPI.mockPay({
+      // Call the API to persist the booking and get a server-generated PNR + id
+      const apiResult = await paymentAPI.mockPay({
         busId:           selectedBus.id,
         selectedSeats:   selectedSeats.map((s) => s.seatNumber),
         passengers,
@@ -222,8 +223,33 @@ const BookingConfirmationPage: React.FC = () => {
         totalAmount,
       });
 
-      setBooking(result);
+      // Build the confirmed booking from local context (always complete & correct).
+      // Only take pnr / id / bookingDate from the API response — those are the
+      // only values that are generated server-side and not available locally.
+      const confirmedBooking: Booking = {
+        id:            (apiResult.id && apiResult.id !== 'undefined')
+                         ? apiResult.id
+                         : `local-${Date.now()}`,
+        userId:        apiResult.userId || '',
+        busId:         selectedBus.id,
+        bus:           selectedBus,
+        passengers,
+        selectedSeats: selectedSeats.map((s) => s.seatNumber),
+        totalAmount,
+        boardingPoint,
+        droppingPoint,
+        status:        'confirmed',
+        bookingDate:   apiResult.bookingDate || new Date().toISOString(),
+        pnr:           (apiResult.pnr && apiResult.pnr.length > 0)
+                         ? apiResult.pnr
+                         : `RB${Math.random().toString(36).slice(2, 9).toUpperCase()}`,
+        contactEmail:  contactData.email,
+        contactPhone:  contactData.phone,
+      };
+
+      setBooking(confirmedBooking);
       setStep('confirmed');
+      markBookingCompleted();
       toast.success('Booking confirmed! Your ticket is ready 🎉');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Booking failed';
@@ -432,6 +458,16 @@ const BookingConfirmationPage: React.FC = () => {
                 Your ticket has been booked and payment received.
               </p>
             </div>
+
+            {isWomenOnly && (
+              <div className="bg-pink-50 rounded-2xl p-4 flex items-center gap-3 border border-pink-100">
+                <span className="text-2xl">👩</span>
+                <div>
+                  <p className="font-bold text-pink-600">Women Only Booking</p>
+                  <p className="text-xs text-pink-500">Priority support: 1800-123-5556</p>
+                </div>
+              </div>
+            )}
 
             {/* Ticket card */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">

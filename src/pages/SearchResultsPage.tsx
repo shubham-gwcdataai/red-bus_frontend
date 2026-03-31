@@ -54,10 +54,8 @@ const SearchResultsPage: React.FC = () => {
 
   const todayISO   = getTodayISO();
   const isPastDate = date < todayISO;
-
-  // ✅ FIX 1: Track last fetched key to prevent duplicate calls
   const lastFetchKey   = useRef('');
-  // ✅ FIX 2: Track if this is the initial mount to skip filter useEffect
+  // Track if this is the initial mount to skip the filter useEffect on first render.
   const isInitialMount = useRef(true);
 
   // ── Core fetch function ───────────────────────────────────────
@@ -86,32 +84,39 @@ const SearchResultsPage: React.FC = () => {
     }
   }, [from, to, date, navigate, isPastDate]);
 
-  // ✅ FIX 3: Single useEffect for route/date change
-  // Resets filters + fetches fresh results
+  // ── Route / date change: reset filters + fetch ───────────────
   useEffect(() => {
     if (!from || !to || !date) return;
 
-    // Build unique key for this route+date combination
     const routeKey = `${from}|${to}|${date}`;
-
-    // Skip if same route+date already fetched
     if (lastFetchKey.current === routeKey) return;
     lastFetchKey.current = routeKey;
 
-    // Update booking context
     setBookingSearch({ source: from, destination: to, date });
 
-    // Reset filters on new route search
     const resetFilters = defaultFilters;
     setFilters(resetFilters);
-    isInitialMount.current = true; // mark so filter effect skips this cycle
+    isInitialMount.current = true;
 
-    // Fetch with default filters
     fetchBuses(resetFilters);
-  }, [from, to, date]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [from, to, date]);
+  useEffect(() => {
+    return () => {
+      lastFetchKey.current = '';
+    };
+  }, []);
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && from && to && date && !isPastDate) {
+        fetchBuses(filters);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [from, to, date, isPastDate, filters, fetchBuses]);
 
-  // ✅ FIX 4: Separate useEffect for filter changes only
-  // Skips on initial mount (already handled above)
+  // ── Filter change: re-fetch with new filters ──────────────────
+  // Skips on initial mount (route useEffect already fetched above)
   useEffect(() => {
     // Skip the very first render — route useEffect already fetched
     if (isInitialMount.current) {

@@ -15,6 +15,8 @@ import BottomNav from '@/components/layout/BottomNav';
 import HomePage from '@/pages/HomePage';
 import LoginPage from '@/pages/LoginPage';
 import SignupPage from '@/pages/SignupPage';
+import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
+import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import SearchResultsPage from '@/pages/SearchResultsPage';
 import SeatSelectionPage from '@/pages/SeatSelectionPage';
 import BookingConfirmationPage from '@/pages/BookingConfirmationPage';
@@ -65,8 +67,8 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
-const NO_FOOTER_PATHS = ['/login', '/signup', '/admin'];
-const NO_NAV_PATHS = ['/admin'];
+const NO_FOOTER_PATHS = ['/login', '/signup', '/admin', '/forgot-password', '/reset-password'];
+const NO_NAV_PATHS = ['/admin', '/login', '/signup', '/forgot-password', '/reset-password'];
 
 const AppContent: React.FC = () => {
   const { pathname,search } = useLocation();
@@ -93,6 +95,8 @@ useEffect(() => {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/search" element={<SearchResultsPage />} />
 
           {/* Protected (login required) */}

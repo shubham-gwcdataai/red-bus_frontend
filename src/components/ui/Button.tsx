@@ -36,7 +36,7 @@ const Button: React.FC<ButtonProps> = ({
   children,
   className,
   disabled,
-  type='button',
+  type='submit',
   ...props
 }) => {
   return (

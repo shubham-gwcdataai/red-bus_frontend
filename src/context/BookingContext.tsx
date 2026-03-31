@@ -15,6 +15,8 @@ interface BookingState {
   droppingPoint: DroppingPoint | null;
   contactEmail:  string;
   contactPhone:  string;
+  bookingCompleted: number;
+  isWomenOnly: boolean;
 }
 
 // ─── Actions ──────────────────────────────────────────────────────
@@ -23,11 +25,14 @@ type BookingAction =
   | { type: 'SET_BUS';           payload: Bus }
   | { type: 'SET_SEATS';         payload: Seat[] }
   | { type: 'TOGGLE_SEAT';       payload: Seat }
+  | { type: 'DESELECT_SEAT';     payload: string }
   | { type: 'SET_PASSENGERS';    payload: Passenger[] }
   | { type: 'SET_BOARDING_POINT'; payload: BoardingPoint }
   | { type: 'SET_DROPPING_POINT'; payload: DroppingPoint }
   | { type: 'SET_CONTACT';       payload: { email: string; phone: string } }
-  | { type: 'CLEAR_BOOKING' };
+  | { type: 'CLEAR_BOOKING' }
+  | { type: 'BOOKING_COMPLETED' }
+  | { type: 'SET_WOMEN_ONLY';    payload: boolean };
 
 // ─── Context Type ─────────────────────────────────────────────────
 interface BookingContextType extends BookingState {
@@ -35,11 +40,14 @@ interface BookingContextType extends BookingState {
   setSelectedBus:   (bus: Bus) => void;
   setSeats:         (seats: Seat[]) => void;
   toggleSeat:       (seat: Seat) => void;
+  deselectSeat:    (seatId: string) => void;
   setPassengers:    (passengers: Passenger[]) => void;
   setBoardingPoint: (bp: BoardingPoint) => void;
   setDroppingPoint: (dp: DroppingPoint) => void;
   setContact:       (email: string, phone: string) => void;
   clearBooking:     () => void;
+  markBookingCompleted: () => void;
+  setWomenOnly:     (value: boolean) => void;
   totalAmount:      number;
 }
 
@@ -54,6 +62,8 @@ const initialState: BookingState = {
   droppingPoint: null,
   contactEmail:  '',
   contactPhone:  '',
+  bookingCompleted: 0,
+  isWomenOnly: false,
 };
 
 // ─── Reducer ──────────────────────────────────────────────────────
@@ -70,14 +80,25 @@ const bookingReducer = (state: BookingState, action: BookingAction): BookingStat
       return { ...state, searchParams: action.payload };
 
     case 'SET_BUS':
-      return { ...state, selectedBus: action.payload };
+      if (state.selectedBus?.id === action.payload.id) {
+        return { ...state, selectedBus: action.payload };
+      }
+      return { ...state, selectedBus: action.payload, seats: [], selectedSeats: [] };
 
-    case 'SET_SEATS':
-      return { ...state, seats: action.payload };
+    case 'SET_SEATS': {
+      // Merge with selectedSeats to preserve selection state
+      const selectedIds = new Set(state.selectedSeats.map(s => s.id));
+      const mergedSeats = action.payload.map(seat => {
+        if (selectedIds.has(seat.id)) {
+          return { ...seat, status: 'selected' as const };
+        }
+        return seat;
+      });
+      return { ...state, seats: mergedSeats };
+    }
 
     case 'TOGGLE_SEAT': {
       const seat = action.payload;
-      // Ignore clicks on already-booked seats
       if (seat.status === 'booked') return state;
 
       const isSelected = state.selectedSeats.some((s) => s.id === seat.id);
@@ -92,6 +113,15 @@ const bookingReducer = (state: BookingState, action: BookingAction): BookingStat
         ? state.selectedSeats.filter((s) => s.id !== seat.id)
         : [...state.selectedSeats, { ...seat, status: 'selected' as const }];
 
+      return { ...state, seats: updatedSeats, selectedSeats: updatedSelected };
+    }
+
+    case 'DESELECT_SEAT': {
+      const seatId = action.payload;
+      const updatedSeats = state.seats.map((s) =>
+        s.id === seatId ? { ...s, status: 'available' as const } : s
+      );
+      const updatedSelected = state.selectedSeats.filter((s) => s.id !== seatId);
       return { ...state, seats: updatedSeats, selectedSeats: updatedSelected };
     }
 
@@ -112,7 +142,13 @@ const bookingReducer = (state: BookingState, action: BookingAction): BookingStat
       };
 
     case 'CLEAR_BOOKING':
-      return initialState;
+      return { ...initialState, isWomenOnly: false };
+
+    case 'BOOKING_COMPLETED':
+      return { ...state, bookingCompleted: state.bookingCompleted + 1 };
+
+    case 'SET_WOMEN_ONLY':
+      return { ...state, isWomenOnly: action.payload };
 
     default:
       return state;
@@ -145,11 +181,14 @@ export const BookingProvider = ({ children }: { children: ReactNode }) => {
       setSelectedBus:   (b)           => dispatch({ type: 'SET_BUS',            payload: b }),
       setSeats:         (s)           => dispatch({ type: 'SET_SEATS',          payload: s }),
       toggleSeat:       (s)           => dispatch({ type: 'TOGGLE_SEAT',        payload: s }),
+      deselectSeat:     (id)          => dispatch({ type: 'DESELECT_SEAT',      payload: id }),
       setPassengers:    (p)           => dispatch({ type: 'SET_PASSENGERS',     payload: p }),
       setBoardingPoint: (bp)          => dispatch({ type: 'SET_BOARDING_POINT', payload: bp }),
       setDroppingPoint: (dp)          => dispatch({ type: 'SET_DROPPING_POINT', payload: dp }),
       setContact:       (email,phone) => dispatch({ type: 'SET_CONTACT',        payload: { email, phone } }),
       clearBooking:     ()            => dispatch({ type: 'CLEAR_BOOKING' }),
+      markBookingCompleted: ()        => dispatch({ type: 'BOOKING_COMPLETED' }),
+      setWomenOnly:     (value)      => dispatch({ type: 'SET_WOMEN_ONLY',      payload: value }),
     }),
     // ✅ Only re-create when state or totalAmount actually changes
     [state, totalAmount]

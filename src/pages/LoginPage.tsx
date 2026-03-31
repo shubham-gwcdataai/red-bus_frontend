@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,6 +20,7 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError,  setServerError]  = useState<string | null>(null);
   const from = (location.state as { from?: string })?.from || '/';
+  const formRef = useRef<HTMLFormElement>(null);
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -73,7 +74,7 @@ const LoginPage: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="space-y-5">
 
             {/* Email */}
             <div className="flex flex-col gap-1">
@@ -107,6 +108,12 @@ const LoginPage: React.FC = () => {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
                   {...register('password')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      formRef.current?.dispatchEvent(new Event('submit', { bubbles: true }));
+                    }
+                  }}
                   onChange={() => setServerError(null)}
                   className={`w-full pl-10 pr-10 py-2.5 rounded-lg border text-sm text-[#1a1a2e]
                     focus:outline-none focus:ring-2 focus:ring-[#d63031] focus:border-transparent
@@ -129,9 +136,9 @@ const LoginPage: React.FC = () => {
             </div>
 
             <div className="flex justify-end">
-              <a href="#" className="text-sm text-[#d63031] font-medium hover:underline">
+              <Link to="/forgot-password" className="text-sm text-[#d63031] font-medium hover:underline">
                 Forgot password?
-              </a>
+              </Link>
             </div>
 
             <Button type="submit" fullWidth size="lg" isLoading={isLoading}>

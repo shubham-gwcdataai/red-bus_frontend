@@ -1,9 +1,44 @@
-import React from 'react';
+import React, { useState } from 'react';
 import HeroSection from '@/components/home/HeroSection';
 import OffersSection from '@/components/home/OffersSection';
 import WhatsNewSection from '@/components/home/WhatsNewSection';
 import TestimonialsSection from '@/components/home/TestimonialsSection';
 import { Star, Smartphone } from 'lucide-react';
+
+const FAQ_DATA = [
+  {
+    question: 'How can I track the location of my booked bus online?',
+    answer: 'Once you have booked your ticket, you can track your bus in real-time using our live tracking feature. Simply go to "My Bookings", select your trip, and tap "Track Bus" to see the current location on a map. This feature helps you plan your pickup and drop-off times accurately.',
+  },
+  {
+    question: 'What are the advantages of bus ticket booking with redBus?',
+    answer: 'redBus offers several advantages: 1) Best price guarantee with exclusive deals, 2) Free cancellation on selected tickets, 3) Real-time bus tracking, 4) Wide range of bus operators and routes, 5) 24/7 customer support, 6) Multiple payment options including UPI, cards, and wallets.',
+  },
+  {
+    question: 'Why book bus tickets online on redBus?',
+    answer: 'Booking online through redBus saves time and offers convenience. You can compare prices from multiple operators, read reviews, choose your preferred seats, and receive instant confirmation. Plus, you get access to exclusive discounts and offers not available at bus counters.',
+  },
+  {
+    question: 'Do I need to create an account on the redBus site to book bus ticket?',
+    answer: 'Yes, you need to create an account to book tickets. This ensures your booking details are saved, you can track your trips, and receive instant notifications about your journey. Registration is free and takes just a minute.',
+  },
+  {
+    question: 'Does bus booking online cost me more?',
+    answer: 'No, booking online through redBus does not cost more. In fact, you often pay less than counter prices due to exclusive online discounts and cashback offers. We also have a best price guarantee - if you find a lower price elsewhere, we will match it.',
+  },
+  {
+    question: 'How can I get the discounts on the bus booking?',
+    answer: 'You can get discounts through: 1) First-time user coupons, 2) Bank-specific offers on payment, 3) Promo codes during checkout, 4) Seasonal sales and festival offers, 5) Loyalty rewards for repeat bookings. Check our offers section regularly for the latest deals.',
+  },
+  {
+    question: "What's New in Bus Booking on redBus?",
+    answer: 'We have introduced several new features: 1) Flex Ticket - modify travel dates up to 4 hours before departure, 2) Live Bus Tracking - real-time location updates, 3) Booking for Women - exclusive deals with priority helplines, 4) Instant Refunds - faster cancellation refunds, 5) Multiple Payment Options - including all major UPI apps.',
+  },
+  {
+    question: 'Can I book a Government bus ticket on redBus?',
+    answer: 'Yes! redBus is an authorized partner for booking government bus services including KSRTC (Karnataka), APSRTC (Andhra Pradesh), TSRTC (Telangana), and Kerala RTC. You can book these government bus tickets just like any other operator with the same convenience and safety features.',
+  },
+];
 
 const GovernmentBuses = [
   { name: 'KSRTC',      state: 'Karnataka',       services: 290,  color: 'text-red-600',    bg: 'bg-red-50'    },
@@ -12,7 +47,10 @@ const GovernmentBuses = [
   { name: 'Kerala RTC', state: 'Kerala',          services: 842,  color: 'text-orange-600', bg: 'bg-orange-50' },
 ];
 
-const HomePage: React.FC = () => (
+const HomePage: React.FC = () => {
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+
+  return (
   <div className="page-enter">
 
     {/* ── Hero (dark bg) ── */}
@@ -136,29 +174,23 @@ const HomePage: React.FC = () => (
           </div>
           
           <div className="space-y-3">
-            {[
-              'How can I track the location of my booked bus online?',
-              'What are the advantages of bus ticket booking with redBus?',
-              'Why book bus tickets online on redBus?',
-              'Do I need to create an account on the redBus site to book bus ticket?',
-              'Does bus booking online cost me more?',
-              'How can I get the discounts on the bus booking?',
-              "What's New in Bus Booking on redBus?",
-              'Can I book a Government bus ticket on redBus?',
-            ].map((question) => (
-              <details key={question} className="bg-white rounded-2xl border border-gray-100 group shadow-sm overflow-hidden transition-all duration-300">
-                <summary className="px-5 md:px-6 py-5 text-sm md:text-base font-semibold text-[#1a1a2e] cursor-pointer list-none flex items-center justify-between hover:bg-gray-50 transition-colors">
-                  {question}
-                  <span className="text-[#d63031] text-2xl group-open:rotate-45 transition-transform duration-300 flex-shrink-0 ml-4 leading-none">
+            {FAQ_DATA.map((faq, index) => (
+              <div key={index} className="bg-white rounded-2xl border border-gray-100 group shadow-sm overflow-hidden transition-all duration-300">
+                <button
+                  onClick={() => setOpenFaqIndex(openFaqIndex === index ? null : index)}
+                  className="w-full px-5 md:px-6 py-5 text-sm md:text-base font-semibold text-[#1a1a2e] cursor-pointer list-none flex items-center justify-between hover:bg-gray-50 transition-colors"
+                >
+                  {faq.question}
+                  <span className={`text-[#d63031] text-2xl transition-transform duration-300 flex-shrink-0 ml-4 leading-none ${openFaqIndex === index ? 'rotate-45' : ''}`}>
                     +
                   </span>
-                </summary>
-                <div className="px-5 md:px-6 pb-6 text-sm md:text-base text-gray-600 leading-relaxed border-t border-gray-50 pt-4">
-                  redBus makes it easy to book, track, and manage your bus tickets with a seamless online
-                  experience. Our platform offers the best prices with verified operators and 24/7 customer support.
-                  You can browse through thousands of routes and choose the one that fits your schedule best.
-                </div>
-              </details>
+                </button>
+                {openFaqIndex === index && (
+                  <div className="px-5 md:px-6 pb-6 text-sm md:text-base text-gray-600 leading-relaxed border-t border-gray-50 pt-4">
+                    {faq.answer}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>
@@ -167,5 +199,5 @@ const HomePage: React.FC = () => (
     </div>
   </div>
 );
-
+};
 export default HomePage;

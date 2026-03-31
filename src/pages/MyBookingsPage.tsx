@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useBooking } from '@/context/BookingContext';
 import {
   Calendar, MapPin, User, Download,
   XCircle, Bus, ChevronDown,
@@ -15,7 +16,9 @@ import toast    from 'react-hot-toast';
 
 const MyBookingsPage: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
+  const { bookingCompleted } = useBooking();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   const [bookings,     setBookings]     = useState<Booking[]>([]);
   const [isLoading,    setIsLoading]    = useState(true);
@@ -23,28 +26,30 @@ const MyBookingsPage: React.FC = () => {
   const [expandedId,   setExpandedId]   = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login', { state: { from: '/my-bookings' } });
-      return;
-    }
+  const fetchBookings = () => {
     setIsLoading(true);
     bookingAPI
       .getMyBookings()
       .then(setBookings)
       .catch(() => toast.error('Failed to load bookings'))
       .finally(() => setIsLoading(false));
-  }, [isAuthenticated]);
+  };
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: '/my-bookings' } });
+      return;
+    }
+    fetchBookings();
+  }, [isAuthenticated, pathname, bookingCompleted]);
 
   const handleCancel = async (bookingId: string) => {
     if (!window.confirm('Are you sure you want to cancel this booking?')) return;
     setCancellingId(bookingId);
     try {
       const res = await bookingAPI.cancel(bookingId);
-      setBookings((prev) =>
-        prev.map((b) => b.id === bookingId ? { ...b, status: 'cancelled' } : b)
-      );
       toast.success(res.message);
+      fetchBookings();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Cancellation failed';
       toast.error(msg);
